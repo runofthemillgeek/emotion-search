@@ -152,8 +152,7 @@ var app = function() {
 				.done(function(data) {
 					var person = data[0];
 
-					console.log(person.scores[emotion]);
-					if(person.scores[emotion] * 1000 > 100)
+					if("scores" in person && person.scores[emotion] * 1000 > 100)
 						hasEmotion = true;
 				});
 
