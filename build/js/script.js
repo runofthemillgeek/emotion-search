@@ -2,7 +2,8 @@ var app = function() {
 	var app = {};
 
 	var BINGKEY = '22b101d9e08a48cf8957bb70028eb7fa',
-			VISIONAPI = 'b3df8f9387a34952b06f34d42f3a6af2';
+			VISIONAPI = 'b3df8f9387a34952b06f34d42f3a6af2',
+			EMOAPI = 'ca568ea94e1c4cc68e88c6c653b14439';
 
 	var $form = $("main form"),
 			$search = $("#search");
@@ -12,7 +13,7 @@ var app = function() {
 		anger: ["frustrated", "angry", "pissed"],
 		fear: ["afraid", "scared"],
 		surprise: ["happy", "excited", "wow"],
-		saddness: ["lonely", "sad", "crying", "depressed"]
+		sadness: ["lonely", "sad", "crying", "depressed"]
 	};
 
 	app.init = function() {
@@ -30,6 +31,8 @@ var app = function() {
 			var results = self.queryImages(search);
 			results = self.decodeResults(results);
 			results = app.filterPersons(results);
+			console.log(results);
+			results = app.filterByEmotion(emotion, results);
 			console.log(results);
 		});
 	};
@@ -51,7 +54,7 @@ var app = function() {
 
 		var params = {
 			"q": term,
-			"count": "3",
+			"count": "10",
 			"offset": "0",
 			"safeSearch": "Moderate",
 		};
@@ -79,8 +82,15 @@ var app = function() {
 		return (results = results.map(function(elem) {
 			var decoded = decodeURIComponent(elem.contentUrl);
 			var components = decoded.slice(decoded.search(/\?/) + 1);
-			var compObj = JSON.parse('{"' + decodeURI(components.replace(/&/g, "\",\"").replace(/=/g,"\":\"")) + '"}');
-			return compObj.r;
+			var compArr = components.split('&');
+			console.log(compArr);
+			for(var i = 0; i < compArr.length; ++i) {
+				comp = compArr[i];
+				if(comp.split('=')[0] === 'r')
+					return comp.slice(comp.indexOf("=") + 1);
+			}
+
+			return elem;
 		}));
 	};
 
@@ -111,6 +121,43 @@ var app = function() {
 				});
 
 			return isPerson;
+		});
+
+		setTimeout(function() {
+
+		}, 5000);
+
+		return filtered;
+	};
+
+	app.filterByEmotion = function(emotion, images) {
+		var ajaxObject = {
+			method: "POST",
+			crossDomain: true,
+			dataType: 'json',
+			async: false,
+			url: 'https://api.projectoxford.ai/emotion/v1.0/recognize',
+			headers: {
+				'Ocp-Apim-Subscription-Key': EMOAPI
+			},
+			contentType: 'application/json',
+			data: {}
+		};
+
+		var filtered = images.filter(function(url) {
+			var hasEmotion = false;
+			console.log(url);
+			ajaxObject.data = JSON.stringify({ url: url });
+			$.ajax(ajaxObject)
+				.done(function(data) {
+					var person = data[0];
+
+					console.log(person.scores[emotion]);
+					if(person.scores[emotion] * 1000 > 100)
+						hasEmotion = true;
+				});
+
+			return hasEmotion;
 		});
 
 		setTimeout(function() {
