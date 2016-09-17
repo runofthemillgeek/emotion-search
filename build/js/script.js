@@ -7,6 +7,11 @@ var app = function() {
 	var $form = $("main form"),
 			$search = $("#search");
 
+	var emotions = {
+		happiness: ["happy", "smile", "smiling", "joy"],
+		anger: ["frustrated", "angry", "pissed"]
+	};
+
 	app.init = function() {
 		this.registerHandlers();
 	};
@@ -17,11 +22,25 @@ var app = function() {
 		$form.submit(function(e) {
 			e.preventDefault();
 			var search = $search.val();
+			var emotion = self.getEmotion(search);
+			console.log(emotion);
 			var results = self.queryImages(search);
 			results = self.decodeResults(results);
 			results = app.filterPersons(results);
 			console.log(results);
 		});
+	};
+
+	app.getEmotion = function(str) {
+		for(var emotion in emotions) {
+			if(emotions.hasOwnProperty(emotion)) {
+				var synonyms = emotions[emotion];
+				for(var i = 0; i < synonyms.length; ++i) {
+					if(str.toLowerCase().search(synonyms[i]) != -1)
+						return emotion;
+				}
+			}
+		}
 	};
 
 	app.queryImages = function(term) {
