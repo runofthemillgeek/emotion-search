@@ -1,0 +1,18 @@
+{
+  "name": "emotion-search",
+  "description": "",
+  "main": "index.html",
+  "authors": [
+    "Sangeeth Sudheer <sangeethmanayil@outlook.com>"
+  ],
+  "license": "ISC",
+  "homepage": "",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
