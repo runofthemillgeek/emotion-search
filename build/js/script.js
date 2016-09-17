@@ -9,7 +9,10 @@ var app = function() {
 
 	var emotions = {
 		happiness: ["happy", "smile", "smiling", "joy"],
-		anger: ["frustrated", "angry", "pissed"]
+		anger: ["frustrated", "angry", "pissed"],
+		fear: ["afraid", "scared"],
+		surprise: ["happy", "excited", "wow"],
+		saddness: ["lonely", "sad", "crying", "depressed"]
 	};
 
 	app.init = function() {
