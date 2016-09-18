@@ -3,16 +3,32 @@ html, body {
 	position: relative;
 }
 
-.result-container {
-	text-align: center;
-}
-
 main .container {
 	width: 100%;
 	position: relative;
 	padding-top: 5em;
+
+	form {
+		text-align: center;
+	}
 }
 
-form {
+.result-container {
 	text-align: center;
+
+	ul {
+		list-style: none;
+		column-count: 3;
+		column-width: 100px;
+		padding-left: 0;
+	}
+
+	ul li {
+		padding: 0;
+		padding-bottom: 1em;
+
+		img {
+			width: 100%;
+		}
+	}
 }
