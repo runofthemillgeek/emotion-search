@@ -53,7 +53,7 @@ var app = function() {
 		$resContainer.find(".search-text").slideUp(function() {
 			var imageItems = "";
 			for(var i = 0; i < images.length; ++i)
-				imageItems += '<li><img src="' + images[i] + '"></li>';
+				imageItems += '<li><a target="_blank" href="' + images[i] + '"><img src="' + images[i] + '"></a></li>';
 			$("<ul/>").appendTo($resContainer);
 			$resContainer.find("ul").append(imageItems);
 		});
