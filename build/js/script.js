@@ -6,7 +6,8 @@ var app = function() {
 			EMOAPI = 'ca568ea94e1c4cc68e88c6c653b14439';
 
 	var $form = $("main form"),
-			$search = $("#search");
+			$search = $("#search"),
+			$resContainer = $(".result-container");
 
 	var emotions = {
 		happiness: ["happy", "smile", "smiling", "joy"],
@@ -25,15 +26,36 @@ var app = function() {
 
 		$form.submit(function(e) {
 			e.preventDefault();
-			var search = $search.val();
-			var emotion = self.getEmotion(search);
-			console.log(emotion);
-			var results = self.queryImages(search);
-			results = self.decodeResults(results);
-			results = app.filterPersons(results);
-			console.log(results);
-			results = app.filterByEmotion(emotion, results);
-			console.log(results);
+			self.formSubmitHandler();
+		});
+	};
+
+	app.formSubmitHandler = function() {
+		var self = this;
+		var search = $search.val();
+		var emotion = self.getEmotion(search);
+		console.log(emotion);
+		self.queryImages(search)
+			.done(function(data) {
+				var results = data.value;
+				results = self.decodeResults(results);
+				self.filterPersons(results, function(results) {
+					self.filterByEmotion(emotion, results, self.displayImages);
+				});
+			})
+			.fail(function() {
+				alert("error");
+			});
+	};
+
+	app.displayImages = function(images) {
+		console.log(images);
+		$resContainer.find(".search-text").slideUp(function() {
+			var imageItems = "";
+			for(var i = 0; i < images.length; ++i)
+				imageItems += '<li><img src="' + images[i] + '"></li>';
+			$("<ul/>").appendTo($resContainer);
+			$resContainer.find("ul").append(imageItems);
 		});
 	};
 
@@ -59,23 +81,14 @@ var app = function() {
 			"safeSearch": "Moderate",
 		};
 
-		$.ajax({
+		return $.ajax({
 			url: "https://api.cognitive.microsoft.com/bing/v5.0/images/search?" + $.param(params),
 			beforeSend: function(xhrObj){
 				xhrObj.setRequestHeader("Ocp-Apim-Subscription-Key", BINGKEY);
 			},
 			method: "GET",
 			dataType: 'json',
-			async: false
-		})
-		.done(function(data) {
-			results = data.value;
-		})
-		.fail(function() {
-			alert("error");
 		});
-
-		return results;
 	};
 
 	app.decodeResults = function(results) {
@@ -94,12 +107,11 @@ var app = function() {
 		}));
 	};
 
-	app.filterPersons = function(results) {
+	app.filterPersons = function(results, callback) {
 		var ajaxObject = {
 			method: "POST",
 			crossDomain: true,
 			dataType: 'json',
-			async: false,
 			url: 'https://api.projectoxford.ai/vision/v1.0/tag',
 			headers: {
 				'Ocp-Apim-Subscription-Key': VISIONAPI
@@ -108,62 +120,91 @@ var app = function() {
 			data: {}
 		};
 
-		var filtered = results.filter(function(elem) {
-			var isPerson = false;
-			ajaxObject.data = JSON.stringify({ url: elem });
+		var filtered = [];
+
+		var i;
+		var ajaxCalls = results.length;
+
+		for(i = 0; i < results.length; ++i) {
+			ajaxObject.data = JSON.stringify({ url: results[i] });
 			$.ajax(ajaxObject)
-				.done(function(data) {
-					for(var i = 0; i < data.tags.length; ++i)
-						if(data.tags[i].name.search("person") != -1) {
-							isPerson = true;
-							break;
-						}
-				});
+				.done(success(i))
+				.fail(failure(i));
+		}
 
-			return isPerson;
-		});
+		function success(i) {
+			return function(data) {
+				for(var j = 0; j < data.tags.length; ++j)
+					if("tags" in data && data.tags[j].name.search("person") != -1) {
+						filtered.push(results[i]);
+						break;
+					}
 
-		setTimeout(function() {
+				--ajaxCalls;
+				if(ajaxCalls <= 0) callback(filtered);
+			};
+		}
 
-		}, 5000);
-
-		return filtered;
+		function failure(i) {
+			return function() {
+				--ajaxCalls;
+				if(ajaxCalls <= 0) callback(filtered);
+			};
+		}
 	};
 
-	app.filterByEmotion = function(emotion, images) {
+	app.filterByEmotion = function(emotion, images, callback) {
 		var ajaxObject = {
 			method: "POST",
 			crossDomain: true,
 			dataType: 'json',
-			async: false,
 			url: 'https://api.projectoxford.ai/emotion/v1.0/recognize',
 			headers: {
 				'Ocp-Apim-Subscription-Key': EMOAPI
 			},
 			contentType: 'application/json',
-			data: {}
+			data: {},
+			timeout: 5000
 		};
 
-		var filtered = images.filter(function(url) {
-			var hasEmotion = false;
+		var filtered = [],
+				url,
+				ajaxCalls = images.length;
+
+		console.log("no of images: " + images.length);
+
+		for(var i = 0; i < images.length; ++i) {
+			url = images[i];
 			console.log(url);
 			ajaxObject.data = JSON.stringify({ url: url });
 			$.ajax(ajaxObject)
-				.done(function(data) {
-					var person = data[0];
+				.done(success(i))
+				.fail(failure(i));
+		}
 
-					if("scores" in person && person.scores[emotion] * 1000 > 100)
-						hasEmotion = true;
-				});
+		function success(i) {
+			return function(data) {
+				console.log(data);
+				var person = data[0];
 
-			return hasEmotion;
-		});
+				if(person && "scores" in person && person.scores[emotion] * 1000 > 100)
+					filtered.push(images[i]);
 
-		setTimeout(function() {
+				--ajaxCalls;
+				console.log(i + ", " + (images.length - 1));
+				if(ajaxCalls <= 0) callback(filtered);
+			};
+		}
 
-		}, 5000);
+		function failure(i) {
+			return function() {
+				--ajaxCalls;
+				console.log("fail");
+				console.log(i + ", " + (images.length - 1));
+				if(ajaxCalls <= 0) callback(filtered);
+			};
+		}
 
-		return filtered;
 	};
 
 	return app;
