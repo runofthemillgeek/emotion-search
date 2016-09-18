@@ -13,11 +13,11 @@ var app = function() {
 			$spinner = $('<div><span class="fa fa-spinner"></span></div>');
 
 	var emotions = {
-		happiness: ["happy", "smile", "smiling", "joy"],
-		anger: ["frustrated", "angry", "pissed"],
-		fear: ["afraid", "scared"],
-		surprise: ["happy", "excited", "wow"],
-		sadness: ["lonely", "sad", "crying", "depressed"]
+		happiness: ["happy", "smile", "smiling", "joy", "satisfied", "joyous", "content", "delighted"],
+		anger: ["frustrated", "angry", "pissed", "enraged", "raged", "vexed", "exasperated", "displeasured", "irritated", "infuriated"],
+		fear: ["afraid", "scared", "terrified", "frightened", "horrified", "alarmed", "agitated"],
+		surprise: ["happy", "excited", "wow", "shocked", "astonished", "amazed", "startled", "stunned"],
+		sadness: ["lonely", "sad", "crying", "depressed", "rejected", "gloomy", "unhappy", "grieved", "grievous"]
 	};
 
 	app.init = function() {
@@ -47,8 +47,7 @@ var app = function() {
 		});
 
 		var search = $search.val();
-		var emotion = self.getEmotion(search);
-		console.log(emotion);
+		var emotion = self.getEmotion(search) || "happiness";
 		self.queryImages(search)
 			.done(function(data) {
 				var results = data.value;
@@ -64,7 +63,6 @@ var app = function() {
 
 	app.displayImages = function(images) {
 		$spinner.hide();
-		console.log(images);
 		var imageItems = "";
 		for(var i = 0; i < images.length; ++i)
 			imageItems += '<li><a target="_blank" href="' + images[i] + '"><img src="' + images[i] + '"></a></li>';
@@ -84,6 +82,8 @@ var app = function() {
 				}
 			}
 		}
+
+		return null;
 	};
 
 	app.queryImages = function(term) {
@@ -91,7 +91,7 @@ var app = function() {
 
 		var params = {
 			"q": term,
-			"count": "10",
+			"count": "20",
 			"offset": "0",
 			"safeSearch": "Moderate",
 		};
@@ -111,7 +111,6 @@ var app = function() {
 			var decoded = decodeURIComponent(elem.contentUrl);
 			var components = decoded.slice(decoded.search(/\?/) + 1);
 			var compArr = components.split('&');
-			console.log(compArr);
 			for(var i = 0; i < compArr.length; ++i) {
 				comp = compArr[i];
 				if(comp.split('=')[0] === 'r')
@@ -186,11 +185,9 @@ var app = function() {
 				url,
 				ajaxCalls = images.length;
 
-		console.log("no of images: " + images.length);
 
 		for(var i = 0; i < images.length; ++i) {
 			url = images[i];
-			console.log(url);
 			ajaxObject.data = JSON.stringify({ url: url });
 			$.ajax(ajaxObject)
 				.done(success(i))
@@ -199,14 +196,12 @@ var app = function() {
 
 		function success(i) {
 			return function(data) {
-				console.log(data);
 				var person = data[0];
 
-				if(person && "scores" in person && person.scores[emotion] * 1000 > 100)
+				if(person && "scores" in person && person.scores[emotion] * 1000 > 80)
 					filtered.push(images[i]);
 
 				--ajaxCalls;
-				console.log(i + ", " + (images.length - 1));
 				if(ajaxCalls <= 0) callback(filtered);
 			};
 		}
@@ -214,8 +209,6 @@ var app = function() {
 		function failure(i) {
 			return function() {
 				--ajaxCalls;
-				console.log("fail");
-				console.log(i + ", " + (images.length - 1));
 				if(ajaxCalls <= 0) callback(filtered);
 			};
 		}
