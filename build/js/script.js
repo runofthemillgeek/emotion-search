@@ -1,5 +1,7 @@
 var app = function() {
-	var app = {};
+	var app = {
+		isHandling: false
+	};
 
 	var BINGKEY = '22b101d9e08a48cf8957bb70028eb7fa',
 			VISIONAPI = 'b3df8f9387a34952b06f34d42f3a6af2',
@@ -7,7 +9,8 @@ var app = function() {
 
 	var $form = $("main form"),
 			$search = $("#search"),
-			$resContainer = $(".result-container");
+			$resContainer = $(".result-container"),
+			$spinner = $('<div><span class="fa fa-spinner"></span></div>');
 
 	var emotions = {
 		happiness: ["happy", "smile", "smiling", "joy"],
@@ -19,6 +22,7 @@ var app = function() {
 
 	app.init = function() {
 		this.registerHandlers();
+		$spinner.appendTo($resContainer).hide();
 	};
 
 	app.registerHandlers = function() {
@@ -26,12 +30,22 @@ var app = function() {
 
 		$form.submit(function(e) {
 			e.preventDefault();
-			self.formSubmitHandler();
+			if(!self.isHandling)
+				self.formSubmitHandler();
 		});
 	};
 
 	app.formSubmitHandler = function() {
 		var self = this;
+		self.isHandling = true;
+		$search.prop("disabled", true);
+		$resContainer.find(".search-text").fadeOut(function() {
+			$spinner.show();
+		});
+		$resContainer.find("ul").fadeOut(function() {
+			$(this).empty();
+		});
+
 		var search = $search.val();
 		var emotion = self.getEmotion(search);
 		console.log(emotion);
@@ -49,14 +63,15 @@ var app = function() {
 	};
 
 	app.displayImages = function(images) {
+		$spinner.hide();
 		console.log(images);
-		$resContainer.find(".search-text").slideUp(function() {
-			var imageItems = "";
-			for(var i = 0; i < images.length; ++i)
-				imageItems += '<li><a target="_blank" href="' + images[i] + '"><img src="' + images[i] + '"></a></li>';
-			$("<ul/>").appendTo($resContainer);
-			$resContainer.find("ul").append(imageItems);
-		});
+		var imageItems = "";
+		for(var i = 0; i < images.length; ++i)
+			imageItems += '<li><a target="_blank" href="' + images[i] + '"><img src="' + images[i] + '"></a></li>';
+		$("<ul/>").appendTo($resContainer);
+		$resContainer.find("ul").append(imageItems);
+		$search.prop("disabled", false);
+		app.isHandling = false;
 	};
 
 	app.getEmotion = function(str) {
